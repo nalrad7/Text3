@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mural Digital - Visualização de Documentos</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #f4f6f9;
+    }
+
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    main {
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    button {
+      background-color: #003366;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #005099;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .cartaz {
+      width: 240px;
+      cursor: pointer;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      transition: transform 0.2s ease;
+    }
+
+    .cartaz:hover {
+      transform: scale(1.04);
+    }
+
+    .cartaz img {
+      width: 100%;
+      display: block;
+    }
+
+    .pdf-viewer {
+      width: 95%;
+      max-width: 900px;
+      height: 600px;
+      display: none;
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    footer {
+      background-color: #003366;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Mural Digital</h1>
+  <p>Visualização de documentos (PDFs por até 24h)</p>
+</header>
+
+<main>
+  <button onclick="selecionarEEnviarPDF()">Enviar PDF</button>
+  <p id="uploadStatus"></p>
+
+  <div class="grid" id="muralGrid"></div>
+
+  <div class="pdf-viewer" id="pdfViewer">
+    <iframe id="pdfFrame" src=""></iframe>
+  </div>
+</main>
+
+<footer>
+  © 2025 SEMPDEC · Mural Firebase
+</footer>
+
+<!-- Firebase já configurado no js/firebase-config.js -->
+<script type="module">
+  import { storage } from './js/firebase-configx.js';
+  import {
+    ref,
+    listAll,
+    uploadBytes,
+    getDownloadURL,
+    getMetadata,
+    deleteObject
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+
+  const muralGrid = document.getElementById('muralGrid');
+  const pdfViewer = document.getElementById('pdfViewer');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const status = document.getElementById('uploadStatus');
+
+  async function selecionarEEnviarPDF() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      status.textContent = "Enviando...";
+
+      const pdfRef = ref(storage, file.name);
+      const metadata = {
+        customMetadata: {
+          uploadTime: new Date().toISOString()
+        }
+      };
+
+      await uploadBytes(pdfRef, file, metadata);
+      status.textContent = "Upload concluído!";
+      carregarMural();
+    };
+    input.click();
+  }
+
+  async function carregarMural() {
+    muralGrid.innerHTML = '';
+    const listRef = ref(storage);
+    const res = await listAll(listRef);
+    const now = new Date();
+
+    for (const pdfRef of res.items) {
+      if (!pdfRef.name.endsWith('.pdf')) continue;
+
+      try {
+        const meta = await getMetadata(pdfRef);
+        const uploadTimeStr = meta.customMetadata?.uploadTime;
+        if (!uploadTimeStr) continue;
+
+        const uploadTime = new Date(uploadTimeStr);
+        const diffMs = now - uploadTime;
+
+        if (diffMs > 24 * 60 * 60 * 1000) {
+          await deleteObject(pdfRef); // Expira após 1 dia
+          continue;
+        }
+
+        const pdfURL = await getDownloadURL(pdfRef);
+        const cartaz = document.createElement('div');
+        cartaz.className = 'cartaz';
+        cartaz.innerHTML = `<img src="https://via.placeholder.com/240x160?text=PDF" alt="PDF" />`;
+        cartaz.onclick = () => {
+          pdfFrame.src = pdfURL;
+          pdfViewer.style.display = 'block';
+          pdfViewer.scrollIntoView({ behavior: 'smooth' });
+        };
+
+        muralGrid.appendChild(cartaz);
+
+      } catch (err) {
+        console.error("Erro ao processar", pdfRef.name, err);
+      }
+    }
+  }
+
+  carregarMural();
+</script>
+
+</body>
+</html>
