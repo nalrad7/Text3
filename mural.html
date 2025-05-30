@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mural Digital</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #f4f6f9;
+      color: #333;
+    }
+
+    header, footer {
+      background-color: #003366;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+    }
+
+    main {
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .upload-box {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .cartaz {
+      width: 280px;
+      cursor: pointer;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      transition: transform 0.2s ease;
+      margin: 1rem;
+    }
+
+    .cartaz:hover {
+      transform: scale(1.03);
+    }
+
+    .cartaz img {
+      width: 100%;
+      display: block;
+    }
+
+    .mural-grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .pdf-viewer {
+      width: 90%;
+      max-width: 900px;
+      height: 600px;
+      display: none;
+      margin-top: 2rem;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Mural Digital SEMPDEC</h1>
+    <p>Visualize comunicados e documentos enviados</p>
+  </header>
+
+  <main>
+    <!-- Upload -->
+    <div class="upload-box">
+      <input type="file" id="fileInput" accept="image/*,.pdf" />
+      <button onclick="uploadArquivo()">Enviar para o mural</button>
+    </div>
+
+    <!-- Mural dinâmico -->
+    <div class="mural-grid" id="mural"></div>
+
+    <!-- PDF Viewer -->
+    <div class="pdf-viewer" id="visualizadorPDF">
+      <iframe id="iframePDF" src=""></iframe>
+    </div>
+  </main>
+
+  <footer>
+    © 2025 SEMPDEC · Mural Digital Interativo
+  </footer>
+
+  <!-- Script principal -->
+  <script type="module">
+    import { storage, db } from './firebase-config.js';
+
+    async function uploadArquivo() {
+      const fileInput = document.getElementById('fileInput');
+      const file = fileInput.files[0];
+      if (!file) return alert("Escolha um arquivo!");
+
+      const storageRef = storage.ref('mural/' + file.name);
+      try {
+        const snapshot = await storageRef.put(file);
+        const url = await snapshot.ref.getDownloadURL();
+
+        await db.collection("arquivosMural").add({
+          nome: file.name,
+          url: url,
+          tipo: file.type,
+          timestamp: Date.now()
+        });
+
+        alert("Enviado com sucesso!");
+        fileInput.value = "";
+      } catch (error) {
+        console.error("Erro ao enviar:", error);
+        alert("Erro ao enviar o arquivo.");
+      }
+    }
+
+    function mostrarPDF(url) {
+      const viewer = document.getElementById('visualizadorPDF');
+      const iframe = document.getElementById('iframePDF');
+      iframe.src = url;
+      viewer.style.display = 'block';
+      viewer.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // Exibir mural dinamicamente
+    db.collection("arquivosMural").orderBy("timestamp", "desc").onSnapshot(snapshot => {
+      const mural = document.getElementById('mural');
+      mural.innerHTML = "";
+
+      snapshot.forEach(doc => {
+        const { nome, url, tipo } = doc.data();
+
+        const div = document.createElement("div");
+        div.className = "cartaz";
+
+        if (tipo.includes("pdf")) {
+          div.innerHTML = `<img src="https://cdn-icons-png.flaticon.com/512/337/337946.png" alt="${nome}" title="${nome}" onclick="mostrarPDF('${url}')" />`;
+        } else {
+          div.innerHTML = `<img src="${url}" alt="${nome}" title="${nome}" onclick="mostrarPDF('${url}')" />`;
+        }
+
+        mural.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>
