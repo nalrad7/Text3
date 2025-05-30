@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>REAC - Relatórios de Ações</title>
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+  <style>
+    /* Botão flutuante */
+    .btn-voltar {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      width: 40px;
+      height: 40px;
+      background-color: #ccc;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      z-index: 1000;
+    }
+
+    /* Ajuste de margem no header para evitar sobreposição */
+    header {
+      margin-top: 4rem; /* espaço suficiente para o botão */
+      text-align: center;
+    }
+
+    .credito {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<button class="btn-voltar" onclick="window.location.href='index.html'"></button>
+
+<header>
+  <h1>RELATÓRIO DE AÇÕES SEMPDEC</h1>
+</header>
+
+<main>
+  <div id="admin-section" class="form-section">
+    <h2>Acesso Administrativo</h2>
+    <input type="password" id="senhaAdmin" placeholder="Digite a senha" />
+    <button onclick="acessarAdmin()">Acessar</button>
+    <div id="opcoesAdmin">
+      <input type="month" id="mesRelatorio" style="margin-top: 1rem" />
+      <button onclick="filtrarPorMes()">Filtrar por Mês</button>
+      <button onclick="gerarPDF()">Gerar PDF</button>
+      <button id="btnLimparFichas" onclick="limparFichasCorrompidas()" style="display: none;">Limpar fichas corrompidas</button>
+    </div>
+  </div>
+
+  <div class="form-section">
+    <h2>Ação Executada</h2>
+    <div class="form-grid">
+      <input type="date" id="data" />
+      <input type="text" id="localidade" placeholder="Localidade" />
+      <select id="acaoSelect" onchange="verificarAcao()">
+        <option value="" disabled selected>Ação Realizada</option>
+        <option>Lavagem de rua</option>
+        <option>Abastecimento de água</option>
+        <option>Desobstrução de bueiros</option>
+        <option>Vistoria em áreas de risco</option>
+        <option>Levantamento de ocorrência</option>
+        <option>Combate a incêndio</option>
+        <option>Construção de pontes</option>
+        <option>Desobstrução do rio</option>
+        <option>Auxílio a secretarias</option>
+        <option value="outros">Outros</option>
+      </select>
+      <input type="text" id="acaoPersonalizada" placeholder="Digite a ação" />
+      <select id="responsavel" multiple size="8">
+        <option>Anderson</option>
+        <option>Bruno</option>
+        <option>Josue</option>
+        <option>Sadrack</option>
+        <option>Nafitalison</option>
+        <option>Elison</option>
+        <option>Herik</option>
+        <option>Silvano</option>
+      </select>
+      <input type="text" id="observacao" placeholder="Observação (opcional)" />
+    </div>
+    <button style="margin-top: 0.7rem" onclick="adicionarFicha()">Salvar Ficha</button>
+  </div>
+
+  <div class="fichas-section">
+    <div class="fichas-header">
+      <h2>Fichas Cadastradas</h2>
+      <button id="btnOrdenar" onclick="alternarOrdem()" class="desc" title="Ordenar por data"></button>
+    </div>
+    <div id="fichasContainer" class="fichas-grid"></div>
+  </div>
+</main>
+
+<script src="js/firebase-config.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/pdf.js"></script>
+<script>
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+</script>
+
+</body>
+</html>

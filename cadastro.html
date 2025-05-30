@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cadastro de Famílias</title>
+  <link rel="icon" href="assets/favicon.ico" type="image/x-icon" />
+  <link rel="stylesheet" href="css/styles.css" />
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #voltarBtn {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      width: 40px;
+      height: 40px;
+      background-color: #ccc;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    #cadastroFamilias {
+      padding: 1rem;
+      max-width: 900px;
+      margin: 4rem auto 2rem auto;
+    }
+
+    #cadastroFamilias form {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    #cadastroFamilias input {
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    #cadastroFamilias button[type="button"] {
+      grid-column: 1 / -1;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<button id="voltarBtn" onclick="window.location.href='index.html'"></button>
+
+<section id="cadastroFamilias">
+  <h2>Cadastro de Famílias</h2>
+  <form>
+    <input type="text" placeholder="Nome" />
+    <input type="number" placeholder="Idade" />
+    <input type="text" placeholder="CPF" />
+    <input type="text" placeholder="Título de Eleitor" />
+    <input type="tel" placeholder="Telefone" />
+    <input type="text" placeholder="Cônjuge" />
+    <input type="number" placeholder="Quantidade de filhos" />
+    <button type="button">Salvar Fichas</button>
+  </form>
+</section>
+
+</body>
+</html>

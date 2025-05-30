@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Mural Digital - Visualização e Upload</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      background-color: #f4f6f9;
+    }
+
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    main {
+      padding: 2rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1.5rem;
+    }
+
+    .upload-area {
+      background: #ffffff;
+      padding: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+    }
+
+    input[type="file"] {
+      margin: 0.5rem 0;
+    }
+
+    button {
+      background-color: #003366;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.2rem;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+
+    button:hover {
+      background-color: #005099;
+    }
+
+    .grid {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    .cartaz {
+      width: 240px;
+      cursor: pointer;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+      transition: transform 0.2s ease;
+    }
+
+    .cartaz:hover {
+      transform: scale(1.04);
+    }
+
+    .cartaz img {
+      width: 100%;
+      display: block;
+    }
+
+    .pdf-viewer {
+      width: 95%;
+      max-width: 900px;
+      height: 600px;
+      display: none;
+      border: 2px solid #ccc;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    footer {
+      background-color: #003366;
+      color: white;
+      text-align: center;
+      padding: 1rem;
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Mural Digital</h1>
+  <p>Visualização e upload de documentos</p>
+</header>
+
+<main>
+  <div class="upload-area">
+    <h3>Enviar novo documento</h3>
+    <input type="file" id="pdfFile" accept="application/pdf" /><br/>
+    <input type="file" id="coverImage" accept="image/*" /><br/>
+    <button onclick="uploadFile()">Enviar</button>
+    <p id="uploadStatus"></p>
+  </div>
+
+  <div class="grid" id="muralGrid"></div>
+
+  <div class="pdf-viewer" id="pdfViewer">
+    <iframe id="pdfFrame" src=""></iframe>
+  </div>
+</main>
+
+<footer>
+  © 2025 SEMPDEC · Mural Firebase
+</footer>
+
+<!-- Firebase já está configurado no js/firebase-config.js -->
+<script type="module">
+  import { storage } from './js/firebase-config.js';
+  import {
+    ref,
+    listAll,
+    uploadBytes,
+    getDownloadURL
+  } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js";
+
+  const muralGrid = document.getElementById('muralGrid');
+  const pdfViewer = document.getElementById('pdfViewer');
+  const pdfFrame = document.getElementById('pdfFrame');
+  const status = document.getElementById('uploadStatus');
+
+  async function carregarMural() {
+    muralGrid.innerHTML = '';  // Limpar grid antes de listar
+    const listRef = ref(storage, 'mural/');
+    const res = await listAll(listRef);
+
+    const imagens = res.items.filter(item => item.name.match(/\.(jpg|jpeg|png|gif)$/i));
+    const pdfs = res.items.filter(item => item.name.match(/\.pdf$/i));
+
+    for (const pdfRef of pdfs) {
+      const pdfURL = await getDownloadURL(pdfRef);
+      const nomeBase = pdfRef.name.replace('.pdf', '');
+
+      const capa = imagens.find(img => img.name.includes(nomeBase));
+      const capaURL = capa ? await getDownloadURL(capa) : 'https://via.placeholder.com/240x160?text=Sem+Capa';
+
+      const cartaz = document.createElement('div');
+      cartaz.className = 'cartaz';
+      cartaz.innerHTML = `<img src="${capaURL}" alt="Documento" />`;
+      cartaz.onclick = () => {
+        pdfFrame.src = pdfURL;
+        pdfViewer.style.display = 'block';
+        pdfViewer.scrollIntoView({ behavior: 'smooth' });
+      };
+
+      muralGrid.appendChild(cartaz);
+    }
+  }
+
+  async function uploadFile() {
+    const pdfFile = document.getElementById('pdfFile').files[0];
+    const coverImage = document.getElementById('coverImage').files[0];
+
+    if (!pdfFile || !coverImage) {
+      alert("Selecione um PDF e uma imagem.");
+      return;
+    }
+
+    status.textContent = "Enviando...";
+
+    const pdfRef = ref(storage, 'mural/' + pdfFile.name);
+    const imgRef = ref(storage, 'mural/' + coverImage.name);
+
+    await uploadBytes(pdfRef, pdfFile);
+    await uploadBytes(imgRef, coverImage);
+
+    status.textContent = "Upload concluído!";
+    carregarMural();
+  }
+
+  carregarMural();
+</script>
+
+</body>
+</html>
